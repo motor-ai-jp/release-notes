@@ -29,25 +29,23 @@ if (releases.length === 0) {
       // Strip customer prefix from tag_name: "customer-v1.0.0" -> "v1.0.0"
       const version = r.tag_name.replace(/^.+-(?=v)/, "");
       const tag = escapeHtml(version);
-      // Strip customer prefix from name too: "customer v1.0.0" -> "v1.0.0"
-      const rawName = r.name || version;
-      const name = escapeHtml(rawName.replace(/^.+[\s-]+(?=v)/, ""));
       const date = new Date(r.published_at).toLocaleDateString("ja-JP", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
       });
-      // Strip Build Info section from body
-      const cleanBody = (r.body || "").replace(/---\s*\n##\s*Build Info[\s\S]*$/, "").trim();
+      // Strip Build Info section and leading "# Release Notes vX.X.X" heading from body
+      const cleanBody = (r.body || "")
+        .replace(/---\s*\n##\s*Build Info[\s\S]*$/, "")
+        .replace(/^#\s*Release Notes\s+v[\d.]+\s*\n*/i, "")
+        .replace(/^チャネル:\s*\S+\s*\n*/m, "")
+        .trim();
       const body = cleanBody ? marked.parse(cleanBody) : "";
 
       return `<article class="release">
       <div class="release-header">
         <h2 class="release-tag">${tag}</h2>
-        <span class="release-name">${name}</span>
-      </div>
-      <div class="release-meta">
-        <time>${date}</time>
+        <span class="release-meta">${date}</span>
       </div>
       <div class="release-body">${body}</div>
     </article>`;
@@ -55,9 +53,7 @@ if (releases.length === 0) {
     .join("\n");
 }
 
-const html = template
-  .replaceAll("<!-- REPO_NAME -->", escapeHtml(repoName))
-  .replace("<!-- RELEASES -->", releasesHtml);
+const html = template.replace("<!-- RELEASES -->", releasesHtml);
 
 writeFileSync("_site/index.html", html, "utf8");
 console.log(`Rendered ${releases.length} release(s) to _site/index.html`);
