@@ -1,0 +1,8 @@
+{
+  "name": "release-notes-site",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "marked": "^14.0.0"
+  }
+}
