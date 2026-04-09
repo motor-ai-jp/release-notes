@@ -39,7 +39,7 @@ jobs:
           mkdir -p _site
           gh api "repos/${{ env.SOURCE_REPO }}/releases" --paginate \
             | jq '[.[] | select(.draft==false and .prerelease==false)
-                   | {tag_name, name, published_at, body, html_url}]' \
+                   | {tag_name, name, published_at, body}]' \
             > _site/releases.json
 
       - name: Render HTML

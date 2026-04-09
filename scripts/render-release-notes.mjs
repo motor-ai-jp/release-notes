@@ -26,15 +26,20 @@ if (releases.length === 0) {
 } else {
   releasesHtml = releases
     .map((r) => {
-      const tag = escapeHtml(r.tag_name);
-      const name = escapeHtml(r.name || r.tag_name);
+      // Strip customer prefix from tag_name: "customer-v1.0.0" -> "v1.0.0"
+      const version = r.tag_name.replace(/^.+-(?=v)/, "");
+      const tag = escapeHtml(version);
+      // Strip customer prefix from name too: "customer v1.0.0" -> "v1.0.0"
+      const rawName = r.name || version;
+      const name = escapeHtml(rawName.replace(/^.+[\s-]+(?=v)/, ""));
       const date = new Date(r.published_at).toLocaleDateString("ja-JP", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
       });
-      const body = r.body ? marked.parse(r.body) : "";
-      const url = escapeHtml(r.html_url);
+      // Strip Build Info section from body
+      const cleanBody = (r.body || "").replace(/---\s*\n##\s*Build Info[\s\S]*$/, "").trim();
+      const body = cleanBody ? marked.parse(cleanBody) : "";
 
       return `<article class="release">
       <div class="release-header">
@@ -43,8 +48,6 @@ if (releases.length === 0) {
       </div>
       <div class="release-meta">
         <time>${date}</time>
-        &middot;
-        <a href="${url}" target="_blank" rel="noopener noreferrer">GitHub で見る</a>
       </div>
       <div class="release-body">${body}</div>
     </article>`;
