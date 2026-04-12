@@ -13,8 +13,13 @@ function escapeHtml(str) {
 }
 
 const repoName = process.env.REPO_NAME || "unknown/repo";
-const releases = JSON.parse(readFileSync("_site/releases.json", "utf8"));
+const allReleases = JSON.parse(readFileSync("_site/releases.json", "utf8"));
 const template = readFileSync("templates/index.html", "utf8");
+
+// Filter: only show canonical release-notes-v* tags (not per-env deploy releases)
+const releases = allReleases.filter((r) =>
+  r.tag_name.startsWith("release-notes-v")
+);
 
 // Sort by published_at descending
 releases.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
@@ -24,19 +29,9 @@ let releasesHtml;
 if (releases.length === 0) {
   releasesHtml = '<div class="empty-message">まだリリースはありません。</div>';
 } else {
-  // Deduplicate by version (keep the first = newest by published_at)
-  const seen = new Map();
-  for (const r of releases) {
-    const version = r.tag_name.replace(/^.+-(?=v)/, "");
-    if (!seen.has(version)) {
-      seen.set(version, r);
-    }
-  }
-  const uniqueReleases = [...seen.values()];
-
-  releasesHtml = uniqueReleases
+  releasesHtml = releases
     .map((r) => {
-      const version = r.tag_name.replace(/^.+-(?=v)/, "");
+      const version = r.tag_name.replace(/^release-notes-/, "");
       const tag = escapeHtml(version);
       const date = new Date(r.published_at).toLocaleDateString("ja-JP", {
         year: "numeric",
@@ -66,5 +61,5 @@ const html = template.replace("<!-- RELEASES -->", releasesHtml);
 
 writeFileSync("_site/index.html", html, "utf8");
 console.log(
-  `Rendered ${uniqueReleases.length} unique release(s) from ${releases.length} total to _site/index.html`
+  `Rendered ${releases.length} release(s) from ${allReleases.length} total to _site/index.html`
 );
