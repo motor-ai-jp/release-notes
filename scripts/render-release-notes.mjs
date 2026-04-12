@@ -16,10 +16,33 @@ const repoName = process.env.REPO_NAME || "unknown/repo";
 const allReleases = JSON.parse(readFileSync("_site/releases.json", "utf8"));
 const template = readFileSync("templates/index.html", "utf8");
 
+// Parse a version string like "v0.3.9004" into a comparable array of numbers.
+function parseVersion(v) {
+  return v
+    .replace(/^v/, "")
+    .split(".")
+    .map((n) => parseInt(n, 10) || 0);
+}
+
+// Compare two version arrays. Returns >0 if a>b, <0 if a<b, 0 if equal.
+function compareVersions(a, b) {
+  const len = Math.max(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    const diff = (a[i] || 0) - (b[i] || 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+const MIN_VERSION = parseVersion("0.3.9004");
+
 // Filter: only show canonical release-notes-v* tags (not per-env deploy releases)
-const releases = allReleases.filter((r) =>
-  r.tag_name.startsWith("release-notes-v")
-);
+// and only versions >= MIN_VERSION
+const releases = allReleases.filter((r) => {
+  if (!r.tag_name.startsWith("release-notes-v")) return false;
+  const version = r.tag_name.replace(/^release-notes-/, "");
+  return compareVersions(parseVersion(version), MIN_VERSION) >= 0;
+});
 
 // Sort by published_at descending
 releases.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
