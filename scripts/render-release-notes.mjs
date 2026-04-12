@@ -24,9 +24,18 @@ let releasesHtml;
 if (releases.length === 0) {
   releasesHtml = '<div class="empty-message">まだリリースはありません。</div>';
 } else {
-  releasesHtml = releases
+  // Deduplicate by version (keep the first = newest by published_at)
+  const seen = new Map();
+  for (const r of releases) {
+    const version = r.tag_name.replace(/^.+-(?=v)/, "");
+    if (!seen.has(version)) {
+      seen.set(version, r);
+    }
+  }
+  const uniqueReleases = [...seen.values()];
+
+  releasesHtml = uniqueReleases
     .map((r) => {
-      // Strip customer prefix from tag_name: "customer-v1.0.0" -> "v1.0.0"
       const version = r.tag_name.replace(/^.+-(?=v)/, "");
       const tag = escapeHtml(version);
       const date = new Date(r.published_at).toLocaleDateString("ja-JP", {
@@ -56,4 +65,6 @@ if (releases.length === 0) {
 const html = template.replace("<!-- RELEASES -->", releasesHtml);
 
 writeFileSync("_site/index.html", html, "utf8");
-console.log(`Rendered ${releases.length} release(s) to _site/index.html`);
+console.log(
+  `Rendered ${uniqueReleases.length} unique release(s) from ${releases.length} total to _site/index.html`
+);
